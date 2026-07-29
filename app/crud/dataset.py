@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-
+from sqlalchemy import select
 from app.models.dataset import Dataset
 
 
@@ -28,23 +28,32 @@ class DatasetCRUD:
         db: Session,
         dataset_id: int,
     ) -> Dataset | None:
-        return (
-            db.query(Dataset)
-            .filter(Dataset.id == dataset_id)
-            .first()
+        """
+        Retrieve a dataset by its ID.
+        """
+
+        stmt = select(Dataset).where(
+            Dataset.id == dataset_id
         )
+
+        return db.scalar(stmt)
 
     @staticmethod
     def get_user_datasets(
         db: Session,
         user_id: int,
     ) -> list[Dataset]:
-        return (
-            db.query(Dataset)
-            .filter(Dataset.user_id == user_id)
+        """
+        Retrieve all datasets belonging to a user.
+        """
+
+        stmt = (
+            select(Dataset)
+            .where(Dataset.user_id == user_id)
             .order_by(Dataset.created_at.desc())
-            .all()
         )
+
+        return list(db.scalars(stmt))
 
     @staticmethod
     def delete_dataset(
@@ -52,23 +61,23 @@ class DatasetCRUD:
         dataset: Dataset,
     ) -> None:
         """
-        Mark dataset for deletion.
-
-        Service layer commits.
+        Delete a dataset record.
         """
 
         db.delete(dataset)
+        db.flush()
 
     @staticmethod
     def update_dataset(
         db: Session,
         dataset: Dataset,
+        name: str,
     ) -> Dataset:
         """
-        Flush pending updates.
-
-        Service layer commits.
+        Update the dataset name.
         """
+
+        dataset.name = name
 
         db.flush()
         db.refresh(dataset)

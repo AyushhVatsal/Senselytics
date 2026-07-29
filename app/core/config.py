@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     SECRET_KEY: SecretStr
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    UPLOAD_DIR: str
 
     BACKEND_CORS_ORIGINS: list[str] = []
 

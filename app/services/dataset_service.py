@@ -4,11 +4,13 @@ import pandas as pd
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.crud.dataset import DatasetCRUD
 from app.models.dataset import Dataset
 from app.schemas.dataset import DatasetResponse
 from app.utils.file_utils import FileUtils
+import traceback
 
 
 class DatasetService:
@@ -164,7 +166,9 @@ class DatasetService:
                 detail="Database error occurred while uploading dataset.",
             )
 
-        except Exception:
+        except Exception as e:
+            traceback.print_exc()   # prints full traceback in terminal
+
             db.rollback()
 
             if file_path:
@@ -172,7 +176,7 @@ class DatasetService:
 
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to upload dataset.",
+                detail=str(e),
             )
 
     # ===============================================================
@@ -299,36 +303,110 @@ class DatasetService:
     # ===============================================================
 
     @staticmethod
-    def list_datasets():
+    def list_datasets(
+        db: Session,
+        user_id: int,
+    ) -> list[Dataset]:
         """
-        TODO:
-        Return all datasets belonging to the authenticated user.
+        Retrieve all datasets belonging to the authenticated user.
         """
-        raise NotImplementedError
+
+        return DatasetCRUD.get_user_datasets(
+            db=db,
+            user_id=user_id,
+        )
 
     @staticmethod
-    def get_dataset():
+    def get_dataset(
+        db: Session,
+        user_id: int,
+        dataset_id: int,
+    ) -> Dataset:
         """
-        TODO:
-        Return a single dataset.
+        Retrieve a dataset owned by the authenticated user.
         """
-        raise NotImplementedError
+
+        dataset = DatasetCRUD.get_dataset_by_id(
+            db=db,
+            dataset_id=dataset_id,
+        )
+
+        if dataset is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Dataset not found.",
+            )
+
+        if dataset.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to access this dataset.",
+            )
+
+        return dataset
 
     @staticmethod
-    def rename_dataset():
+    def rename_dataset(
+        db: Session,
+        user_id: int,
+        dataset_id: int,
+        name: str,
+    ) -> Dataset:
         """
-        TODO:
         Rename a dataset.
         """
-        raise NotImplementedError
+
+        dataset = DatasetService.get_dataset(
+            db=db,
+            user_id=user_id,
+            dataset_id=dataset_id,
+        )
+
+        dataset = DatasetCRUD.update_dataset(
+            db=db,
+            dataset=dataset,
+            name=name,
+        )
+
+        db.commit()
+        db.refresh(dataset)
+
+        return dataset
 
     @staticmethod
-    def delete_dataset():
+    def delete_dataset(
+        db: Session,
+        user_id: int,
+        dataset_id: int,
+    ) -> None:
         """
-        TODO:
-        Delete:
-        - Dataset metadata
-        - PostgreSQL table
-        - Uploaded file
+        Delete a dataset owned by the authenticated user.
         """
-        raise NotImplementedError
+
+        dataset = DatasetService.get_dataset(
+            db=db,
+            user_id=user_id,
+            dataset_id=dataset_id,
+        )
+
+        try:
+            FileUtils.delete_file(dataset.file_path)
+
+            db.execute(
+                text(f'DROP TABLE IF EXISTS "{dataset.table_name}"')
+            )
+
+            DatasetCRUD.delete_dataset(
+                db=db,
+                dataset=dataset,
+            )
+
+            db.commit()
+
+        except SQLAlchemyError:
+            db.rollback()
+            raise
+
+        except Exception:
+            db.rollback()
+            raise
