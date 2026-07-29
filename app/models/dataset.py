@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -30,9 +30,30 @@ class Dataset(Base):
         nullable=False,
     )
 
+    stored_filename: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=False,
+    )
+
     table_name: Mapped[str] = mapped_column(
         String(255),
         unique=True,
+        nullable=False,
+    )
+
+    file_path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+    )
+
+    file_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+    )
+
+    file_size: Mapped[int] = mapped_column(
+        BigInteger,
         nullable=False,
     )
 
@@ -45,6 +66,12 @@ class Dataset(Base):
     column_count: Mapped[int] = mapped_column(
         Integer,
         default=0,
+        nullable=False,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(20),
+        server_default="uploaded",
         nullable=False,
     )
 

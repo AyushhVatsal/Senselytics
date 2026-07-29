@@ -1,8 +1,8 @@
 """create users and datasets tables
 
-Revision ID: 5194f6e4c9c4
+Revision ID: d7ad678a1a92
 Revises: 
-Create Date: 2026-07-26 15:07:12.288956
+Create Date: 2026-07-29 12:25:57.131995
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '5194f6e4c9c4'
+revision: str = 'd7ad678a1a92'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -37,13 +37,19 @@ def upgrade() -> None:
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('original_filename', sa.String(length=255), nullable=False),
+    sa.Column('stored_filename', sa.String(length=255), nullable=False),
     sa.Column('table_name', sa.String(length=255), nullable=False),
+    sa.Column('file_path', sa.String(length=500), nullable=False),
+    sa.Column('file_type', sa.String(length=20), nullable=False),
+    sa.Column('file_size', sa.BigInteger(), nullable=False),
     sa.Column('row_count', sa.Integer(), nullable=False),
     sa.Column('column_count', sa.Integer(), nullable=False),
+    sa.Column('status', sa.String(length=20), server_default='uploaded', nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('stored_filename'),
     sa.UniqueConstraint('table_name')
     )
     op.create_index(op.f('ix_datasets_id'), 'datasets', ['id'], unique=False)
