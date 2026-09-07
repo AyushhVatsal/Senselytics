@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Accidental shell/generated files
+npm
+tsc
+senselytics-frontend@0.1.0
+
+vite.config.js
+vite.config.d.ts
